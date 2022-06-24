@@ -1,17 +1,19 @@
 #import "FastImagePlugin.h"
+#import "ResizeImageHandler.h"
 
 @implementation FastImagePlugin
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
   FlutterMethodChannel* channel = [FlutterMethodChannel
-      methodChannelWithName:@"fast_image"
+      methodChannelWithName:@"dev.dart-tools/fast_image"
             binaryMessenger:[registrar messenger]];
   FastImagePlugin* instance = [[FastImagePlugin alloc] init];
   [registrar addMethodCallDelegate:instance channel:channel];
 }
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
-  if ([@"getPlatformVersion" isEqualToString:call.method]) {
-    result([@"iOS " stringByAppendingString:[[UIDevice currentDevice] systemVersion]]);
+  if ([@"resizeImage" isEqualToString:call.method]) {
+    ResizeImageHandler *handler = [[ResizeImageHandler alloc] init];
+    [handler handleMethodCall:call result:result];
   } else {
     result(FlutterMethodNotImplemented);
   }

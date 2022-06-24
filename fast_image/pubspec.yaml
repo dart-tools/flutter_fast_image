@@ -24,3 +24,5 @@ flutter:
       android:
         package: dev.darttools.fast_image
         pluginClass: FastImagePlugin
+      ios:
+        pluginClass: FastImagePlugin
