@@ -89,11 +89,11 @@ public class ResizeImageHandler {
             Integer h = bitmap.getHeight();
 
 
-            System.out.println("src width = "+w);
-            System.out.println("src height = "+h);
+            // System.out.println("src width = "+w);
+            // System.out.println("src height = "+h);
 
-            System.out.println("input width = "+width);
-            System.out.println("input height = "+height);
+            // System.out.println("input width = "+width);
+            // System.out.println("input height = "+height);
 
             Integer intendedWidth = width;
             Integer intendedHeight = height;
@@ -110,8 +110,8 @@ public class ResizeImageHandler {
                 }
             }
 
-            System.out.println("intendedWidth = "+intendedWidth);
-            System.out.println("intendedHeight = "+intendedHeight);
+            // System.out.println("intendedWidth = "+intendedWidth);
+            // System.out.println("intendedHeight = "+intendedHeight);
 
             Integer newHeight = intendedHeight != null ? intendedHeight : Math.round((h.floatValue() / w.floatValue()) * intendedWidth);
             Integer newWidth = intendedWidth != null ? intendedWidth : Math.round((w.floatValue() / h.floatValue()) * newHeight);
@@ -121,15 +121,15 @@ public class ResizeImageHandler {
             float destW = w / scale;
             float destH = h / scale;
 
-            System.out.println("dst width = "+destW);
-            System.out.println("dst height = "+destH);
+            // System.out.println("dst width = "+destW);
+            // System.out.println("dst height = "+destH);
 
             if (newWidth.floatValue() / newHeight.floatValue() != w.floatValue() / h.floatValue()) {
                 Integer targetX = Math.round(scale * (destW - newWidth) / 2);
                 Integer targetY = Math.round(scale * (destH - newHeight) / 2);
 
-                System.out.println("targetX = "+targetX);
-                System.out.println("targetY = "+targetY);
+                // System.out.println("targetX = "+targetX);
+                // System.out.println("targetY = "+targetY);
 
                 bitmap = Bitmap.createBitmap(bitmap, targetX, targetY, Math.round(scale * newWidth), Math.round(scale * newHeight));
             }
@@ -149,8 +149,8 @@ public class ResizeImageHandler {
         float scaleW = width.floatValue() / minWidth.floatValue();
         float scaleH = height.floatValue() / minHeight.floatValue();
 
-        System.out.println("width scale = "+scaleW);
-        System.out.println("height scale = "+scaleH);
+        // System.out.println("width scale = "+scaleW);
+        // System.out.println("height scale = "+scaleH);
 
         return Math.max(1f, Math.min(scaleW, scaleH));
     }
@@ -159,18 +159,18 @@ public class ResizeImageHandler {
         Integer w = bitmap.getWidth();
         Integer h = bitmap.getHeight();
 
-        System.out.println("src width = "+w);
-        System.out.println("src height = "+h);
+        // System.out.println("src width = "+w);
+        // System.out.println("src height = "+h);
 
         float scale = calcScale(bitmap.getWidth(), bitmap.getHeight(), minWidth, minHeight);
 
-        System.out.println("scale = "+scale);
+        // System.out.println("scale = "+scale);
 
         Integer destW = Math.round(w.floatValue() / scale);
         Integer destH = Math.round(h.floatValue() / scale);
 
-        System.out.println("dst width = "+destW);
-        System.out.println("dst height = "+destH);
+        // System.out.println("dst width = "+destW);
+        // System.out.println("dst height = "+destH);
 
         bitmap = Bitmap.createScaledBitmap(bitmap, destW, destH, true);
         bitmap = rotateBitmap(bitmap, rotate);
@@ -185,7 +185,6 @@ public class ResizeImageHandler {
         if (rotate % 360 != 0) {
             Matrix matrix = new Matrix();
             matrix.setRotate(rotate.floatValue());
-            // 围绕原地进行旋转
             return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
         } else {
             return bitmap;
