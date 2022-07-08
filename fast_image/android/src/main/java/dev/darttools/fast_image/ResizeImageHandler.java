@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.Math;
 import java.util.ArrayList;
 
 import io.flutter.plugin.common.MethodCall;
@@ -50,80 +51,97 @@ public class ResizeImageHandler {
 
         Integer targetRotate = rotate + exifRotate;
         try {
-            resize(filePath, targetPath, width, height, quality, targetRotate);
+            resize(filePath, targetPath, width, height, quality, targetRotate, 0);
             result.success(null);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             result.error("FastImageError", e.getMessage(), null);
         }
     }
 
-    private void resize(String path, String destinationPath, Integer width, Integer height, Integer quality, Integer rotate) throws IOException {
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = false;
-        options.inPreferredConfig = Bitmap.Config.RGB_565;
-        options.inSampleSize = 1;
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) {
+    private void resize(String path, String destinationPath, Integer width, Integer height, Integer quality, Integer rotate, int numberOfRetries) throws IOException, Exception {
+        try {
+            if(numberOfRetries == 5) throw new Exception("Failed to resize image after 5 retries");
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = false;
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            options.inSampleSize = (int)Math.pow(2, numberOfRetries);
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) {
 
-            options.inDither = true;
-        }
-        Bitmap bitmap = BitmapFactory.decodeFile(path, options);
-
-        Integer w = bitmap.getWidth();
-        Integer h = bitmap.getHeight();
-
-
-        System.out.println("src width = "+w);
-        System.out.println("src height = "+h);
-
-        System.out.println("input width = "+width);
-        System.out.println("input height = "+height);
-
-        Integer intendedWidth = width;
-        Integer intendedHeight = height;
-        if (intendedWidth != null && intendedWidth > w) {
-            intendedWidth = w;
-            if (intendedHeight != null) {
-                intendedHeight = Math.round((height.floatValue() / width.floatValue()) * intendedWidth);
+                options.inDither = true;
             }
-        }
-        if (intendedHeight != null && intendedHeight > h) {
-            intendedHeight = h;
-            if (intendedWidth != null) {
-                intendedWidth = Math.round((width.floatValue() / height.floatValue()) * intendedHeight);
+            Bitmap bitmap = null;
+            FileInputStream stream = null;
+            try {
+                stream = new FileInputStream(path);
+                bitmap = BitmapFactory.decodeStream(stream, null, options);
+            } finally {
+                if (stream != null) {
+                    try {
+                        stream.close();
+                    } catch (IOException e) {
+                        // do nothing here
+                    }
+                }
             }
+
+            Integer w = bitmap.getWidth();
+            Integer h = bitmap.getHeight();
+
+
+            System.out.println("src width = "+w);
+            System.out.println("src height = "+h);
+
+            System.out.println("input width = "+width);
+            System.out.println("input height = "+height);
+
+            Integer intendedWidth = width;
+            Integer intendedHeight = height;
+            if (intendedWidth != null && intendedWidth > w) {
+                intendedWidth = w;
+                if (intendedHeight != null) {
+                    intendedHeight = Math.round((height.floatValue() / width.floatValue()) * intendedWidth);
+                }
+            }
+            if (intendedHeight != null && intendedHeight > h) {
+                intendedHeight = h;
+                if (intendedWidth != null) {
+                    intendedWidth = Math.round((width.floatValue() / height.floatValue()) * intendedHeight);
+                }
+            }
+
+            System.out.println("intendedWidth = "+intendedWidth);
+            System.out.println("intendedHeight = "+intendedHeight);
+
+            Integer newHeight = intendedHeight != null ? intendedHeight : Math.round((h.floatValue() / w.floatValue()) * intendedWidth);
+            Integer newWidth = intendedWidth != null ? intendedWidth : Math.round((w.floatValue() / h.floatValue()) * newHeight);
+
+            float scale = calcScale(bitmap.getWidth(), bitmap.getHeight(), newWidth, newHeight);
+
+            float destW = w / scale;
+            float destH = h / scale;
+
+            System.out.println("dst width = "+destW);
+            System.out.println("dst height = "+destH);
+
+            if (newWidth.floatValue() / newHeight.floatValue() != w.floatValue() / h.floatValue()) {
+                Integer targetX = Math.round(scale * (destW - newWidth) / 2);
+                Integer targetY = Math.round(scale * (destH - newHeight) / 2);
+
+                System.out.println("targetX = "+targetX);
+                System.out.println("targetY = "+targetY);
+
+                bitmap = Bitmap.createBitmap(bitmap, targetX, targetY, Math.round(scale * newWidth), Math.round(scale * newHeight));
+            }
+
+            byte[] array = compressBitmap(bitmap, newWidth, newHeight, quality, rotate);
+            FileOutputStream fileOutputStream = new FileOutputStream(destinationPath);
+            fileOutputStream.write(array);
+            fileOutputStream.close();
+        } catch (OutOfMemoryError error){//handling out of memory error and increase samples size
+            System.gc();
+            resize(path, destinationPath, width, height, quality, rotate, numberOfRetries + 1);
         }
-
-        System.out.println("intendedWidth = "+intendedWidth);
-        System.out.println("intendedHeight = "+intendedHeight);
-
-        Integer newHeight = intendedHeight != null ? intendedHeight : Math.round((h.floatValue() / w.floatValue()) * intendedWidth);
-        Integer newWidth = intendedWidth != null ? intendedWidth : Math.round((w.floatValue() / h.floatValue()) * newHeight);
-
-        float scale = calcScale(bitmap.getWidth(), bitmap.getHeight(), newWidth, newHeight);
-
-        float destW = w / scale;
-        float destH = h / scale;
-
-        System.out.println("dst width = "+destW);
-        System.out.println("dst height = "+destH);
-
-        if (newWidth.floatValue() / newHeight.floatValue() != w.floatValue() / h.floatValue()) {
-            Integer targetX = Math.round(scale * (destW - newWidth) / 2);
-            Integer targetY = Math.round(scale * (destH - newHeight) / 2);
-
-            System.out.println("targetX = "+targetX);
-            System.out.println("targetY = "+targetY);
-
-            bitmap = Bitmap.createBitmap(bitmap, targetX, targetY, Math.round(scale * newWidth), Math.round(scale * newHeight));
-        }
-
-        byte[] array = compressBitmap(bitmap, newWidth, newHeight, quality, rotate);
-        FileOutputStream fileOutputStream = new FileOutputStream(destinationPath);
-        fileOutputStream.write(array);
-        fileOutputStream.close();
-
-
     }
 
     private float calcScale(Integer width, Integer height, Integer minWidth, Integer minHeight) {
