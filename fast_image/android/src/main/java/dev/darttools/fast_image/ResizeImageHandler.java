@@ -75,6 +75,15 @@ public class ResizeImageHandler {
             try {
                 stream = new FileInputStream(path);
                 bitmap = BitmapFactory.decodeStream(stream, null, options);
+                if(bitmap == null){
+                    File file = new File(path);
+                    long fileLength = file.length();
+                    if(fileLength == 0) {
+                        throw new Exception("File length is 0 when trying to decode bitmap.");
+                    } else {
+                        throw new Exception("File length is "+fileLength+" when trying to decode bitmap.");
+                    }
+                }
             } finally {
                 if (stream != null) {
                     try {
